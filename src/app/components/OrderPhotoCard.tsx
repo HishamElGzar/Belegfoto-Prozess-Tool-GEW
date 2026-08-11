@@ -3,7 +3,7 @@ import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Badge } from './ui/badge'
-import { CheckCircle2, Eye, X, ChevronDown, Plus } from 'lucide-react'
+import { CircleCheck as CheckCircle2, Eye, X, ChevronDown, Plus } from 'lucide-react'
 
 interface PhotoOrder {
   id: string

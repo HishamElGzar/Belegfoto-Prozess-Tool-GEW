@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from "./ui/select"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { MapPin, Image as ImageIcon, Save, Search, Plus, Edit, Trash2, RefreshCw, AlertCircle, Database } from 'lucide-react'
+import { MapPin, Image as ImageIcon, Save, Search, Plus, CreditCard as Edit, Trash2, RefreshCw, CircleAlert as AlertCircle, Database } from 'lucide-react'
 import { toast } from "sonner"
 import { projectId, publicAnonKey } from '../utils/supabase/info'
 

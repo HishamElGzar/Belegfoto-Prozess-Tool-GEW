@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table'
-import { Calendar, MapPin, Camera, Save, CheckSquare, Square, X, ChevronDown, ChevronUp, Eye, Download } from 'lucide-react'
+import { Calendar, MapPin, Camera, Save, SquareCheck as CheckSquare, Square, X, ChevronDown, ChevronUp, Eye, Download } from 'lucide-react'
 import { projectId, publicAnonKey } from '../utils/supabase/info'
 import { toast } from "sonner"
 import * as XLSX from 'xlsx'

@@ -4,12 +4,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
-import {
-  Search,
-  Filter,
-  X,
-  Camera
-} from 'lucide-react'
+import { Search, ListFilter as Filter, X, Camera } from 'lucide-react'
 import { toast } from "sonner"
 import {
   projectId,

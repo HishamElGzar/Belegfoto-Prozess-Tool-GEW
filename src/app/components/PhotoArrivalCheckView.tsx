@@ -5,15 +5,7 @@ import { Input } from './ui/input'
 import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
 
-import {
-  Search,
-  CheckCircle2,
-  Eye,
-  Filter,
-  X,
-  Camera,
-  PackageCheck,
-} from 'lucide-react'
+import { Search, CircleCheck as CheckCircle2, Eye, ListFilter as Filter, X, Camera, PackageCheck } from 'lucide-react'
 import { toast } from "sonner"
 import {
   projectId,
