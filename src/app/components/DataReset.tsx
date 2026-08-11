@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { AlertCircle, RefreshCw, Database, MapPin } from 'lucide-react'
+import { CircleAlert as AlertCircle, RefreshCw, Database, MapPin } from 'lucide-react'
 import { projectId, publicAnonKey } from '../utils/supabase/info'
 
 export function DataReset() {

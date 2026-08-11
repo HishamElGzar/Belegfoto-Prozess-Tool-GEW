@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { MapPin, CheckCircle2, AlertCircle } from "lucide-react";
+import { MapPin, CircleCheck as CheckCircle2, CircleAlert as AlertCircle } from "lucide-react";
 
 const TARGET_OSA_ID = "41002.008.02353_001";
 

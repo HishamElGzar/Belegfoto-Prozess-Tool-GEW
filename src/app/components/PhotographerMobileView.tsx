@@ -7,38 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import {
-  Camera,
-  CheckCircle2,
-  Circle,
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  X,
-  Image as ImageIcon,
-  Navigation,
-  Route,
-  Copy,
-  Check,
-  User,
-  LogOut,
-  LocateFixed,
-  Loader2,
-  AlertCircle,
-  Compass,
-  List,
-  RefreshCw,
-  ChevronRight,
-  ArrowLeft,
-  Upload,
-  QrCode,
-  Nfc,
-  ScanLine,
-  Search,
-  CheckCircle,
-  XCircle,
-  Wifi,
-} from 'lucide-react'
+import { Camera, CircleCheck as CheckCircle2, Circle, ChevronDown, ChevronUp, MapPin, X, Image as ImageIcon, Navigation, Route, Copy, Check, User, LogOut, LocateFixed, Loader as Loader2, CircleAlert as AlertCircle, Compass, List, RefreshCw, ChevronRight, ArrowLeft, Upload, QrCode, Nfc, ScanLine, Search, CircleCheck as CheckCircle, Circle as XCircle, Wifi } from 'lucide-react'
 import jsQR from 'jsqr'
 import { toast } from "sonner"
 import { projectId, publicAnonKey } from '../utils/supabase/info'

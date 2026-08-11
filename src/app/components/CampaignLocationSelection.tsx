@@ -12,14 +12,7 @@ import {
   SelectValue,
 } from './ui/select'
 import { Badge } from './ui/badge'
-import { 
-  Search, 
-  MapPin, 
-  Calendar, 
-  Filter,
-  X,
-  CheckCircle2
-} from 'lucide-react'
+import { Search, MapPin, Calendar, ListFilter as Filter, X, CircleCheck as CheckCircle2 } from 'lucide-react'
 import { toast } from "sonner"
 import {
   projectId,

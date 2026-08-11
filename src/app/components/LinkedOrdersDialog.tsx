@@ -9,7 +9,7 @@ import {
 } from './ui/dialog'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { Link2, Unlink, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Link2, Unlink, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react'
 import { toast } from "sonner"
 import {
   projectId,
