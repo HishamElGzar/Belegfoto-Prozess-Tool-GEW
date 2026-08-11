@@ -1,0 +1,231 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+
+  /* LIGHT THEME – GEWISTA */
+  --background: #ffffff;
+  --foreground: #222222;
+
+  --card: #ffffff;
+  --card-foreground: #222222;
+
+  --popover: #ffffff;
+  --popover-foreground: #222222;
+
+  /* Primär: Gewista-Rot */
+  --primary: #e30613;
+  --primary-foreground: #ffffff;
+
+  /* Sekundär: Gewista-Grau hell */
+  --secondary: #f2f2f2;
+  --secondary-foreground: #222222;
+
+  --muted: #f5f5f5;
+  --muted-foreground: #777777;
+
+  --accent: #f0f0f0;
+  --accent-foreground: #222222;
+
+  /* Destruktiv kannst du vom Primärrot absetzen oder gleich lassen */
+  --destructive: #b00012;
+  --destructive-foreground: #ffffff;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --input: transparent;
+  --input-background: #f5f5f5;
+  --switch-background: #d0d0d0;
+
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+
+  /* Ring-Farbe (Focus) – leicht rötlich */
+  --ring: #ff4a5a;
+
+  /* Charts – abgestimmt auf Rot/Grau-Palette, mit etwas Blau/Grün für Differenzierung */
+  --chart-1: #e30613; /* rot */
+  --chart-2: #0072b8; /* blau */
+  --chart-3: #5cb85c; /* grün */
+  --chart-4: #ffb81c; /* gelb/orange */
+  --chart-5: #6c757d; /* grau */
+
+  --radius: 0.625rem;
+
+  /* Sidebar – helle Variante */
+  --sidebar: #fafafa;
+  --sidebar-foreground: #222222;
+  --sidebar-primary: #e30613;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f2f2f2;
+  --sidebar-accent-foreground: #222222;
+  --sidebar-border: #e1e1e1;
+  --sidebar-ring: #ff4a5a;
+}
+
+.dark {
+  /* DARK THEME – GEWISTA */
+
+  --background: #121212;
+  --foreground: #f5f5f5;
+
+  --card: #181818;
+  --card-foreground: #f5f5f5;
+
+  --popover: #181818;
+  --popover-foreground: #f5f5f5;
+
+  --primary: #ff4a5a; /* etwas aufgehelltes Rot für Dark-Mode */
+  --primary-foreground: #ffffff;
+
+  --secondary: #262626;
+  --secondary-foreground: #f5f5f5;
+
+  --muted: #262626;
+  --muted-foreground: #b0b0b0;
+
+  --accent: #262626;
+  --accent-foreground: #f5f5f5;
+
+  --destructive: #ff1f2d;
+  --destructive-foreground: #ffffff;
+
+  --border: #2f2f2f;
+  --input: #262626;
+  --ring: #ff4a5a;
+
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+
+  /* Charts – angepasste, etwas hellere Töne */
+  --chart-1: #ff4a5a; /* rot */
+  --chart-2: #3ba9ff; /* blau */
+  --chart-3: #7bd67b; /* grün */
+  --chart-4: #ffd666; /* gelb/orange */
+  --chart-5: #a0a4b0; /* grau */
+
+  /* Sidebar Dark */
+  --sidebar: #181818;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #ff4a5a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #2f2f2f;
+  --sidebar-ring: #ff4a5a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(
+    --sidebar-primary-foreground
+  );
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(
+    --sidebar-accent-foreground
+  );
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(
+    :not(:has([class*=" text-"]), :not(:has([class^="text-"])))
+  ) {
+    h1 {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    button {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
