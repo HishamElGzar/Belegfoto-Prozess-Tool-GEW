@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { CircleAlert as AlertCircle, RefreshCw, Database, MapPin } from 'lucide-react'
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import {
+  getMasterLocations,
+  getCampaigns,
+  getOccupancyPeriods,
+} from '../utils/api'
 
 export function DataReset() {
   const [isResetting, setIsResetting] = useState(false)
@@ -12,29 +16,13 @@ export function DataReset() {
   const [isInitCampaigns, setIsInitCampaigns] = useState(false)
   const [isMigratingIds, setIsMigratingIds] = useState(false)
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-  
-  // Initialize master locations
+  // Initialize master locations (no-op: test-data seeding not supported via direct DB API)
   const initMasterLocations = async () => {
     setIsInitLocations(true)
     setMessage('Erstelle Master-Standorte...')
-    
+
     try {
-      const response = await fetch(`${serverUrl}/init-master-locations`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      
-      const data = await response.json()
-      console.log('init-master-locations response:', data)
-      
-      if (data.error) {
-        setMessage(`❌ Fehler: ${data.error}`)
-      } else {
-        setMessage(`✅ ${data.count} Master-Standorte erfolgreich erstellt!`)
-      }
+      setMessage('ℹ️ Testdaten-Seeding wird von der direkten Datenbank-API nicht unterstützt.')
     } catch (error) {
       console.error('Error initializing master locations:', error)
       setMessage(`❌ Fehler: ${error instanceof Error ? error.message : String(error)}`)
@@ -42,29 +30,14 @@ export function DataReset() {
       setIsInitLocations(false)
     }
   }
-  
-  // Initialize campaigns with location assignments
+
+  // Initialize campaigns with location assignments (no-op: test-data seeding not supported via direct DB API)
   const initCampaigns = async () => {
     setIsInitCampaigns(true)
     setMessage('Erstelle Kampagnen mit Standort-Zuordnungen...')
-    
+
     try {
-      const response = await fetch(`${serverUrl}/init-campaigns`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      
-      const data = await response.json()
-      console.log('init-campaigns response:', data)
-      
-      if (data.error) {
-        setMessage(`❌ Fehler: ${data.error}`)
-      } else {
-        const locationCount = data.campaigns.reduce((sum: number, c: any) => sum + (c.selectedLocationIds?.length || 0), 0)
-        setMessage(`✅ ${data.count} Kampagnen mit insgesamt ${locationCount} Standort-Zuordnungen erstellt!`)
-      }
+      setMessage('ℹ️ Testdaten-Seeding wird von der direkten Datenbank-API nicht unterstützt.')
     } catch (error) {
       console.error('Error initializing campaigns:', error)
       setMessage(`❌ Fehler: ${error instanceof Error ? error.message : String(error)}`)
@@ -72,48 +45,14 @@ export function DataReset() {
       setIsInitCampaigns(false)
     }
   }
-  
-  // Initialize everything in order
+
+  // Initialize everything in order (no-op: test-data seeding not supported via direct DB API)
   const initAll = async () => {
     setIsResetting(true)
     setMessage('Initialisiere alle Testdaten...')
-    
+
     try {
-      // Step 1: Initialize master locations
-      setMessage('Schritt 1/2: Erstelle Master-Standorte...')
-      const locResponse = await fetch(`${serverUrl}/init-master-locations`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      const locData = await locResponse.json()
-      console.log('Master locations initialized:', locData)
-      
-      if (locData.error) {
-        setMessage(`❌ Fehler beim Erstellen der Standorte: ${locData.error}`)
-        return
-      }
-      
-      // Step 2: Initialize campaigns with assigned locations
-      setMessage('Schritt 2/2: Erstelle Kampagnen mit Standort-Zuordnungen...')
-      const campResponse = await fetch(`${serverUrl}/init-campaigns`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      const campData = await campResponse.json()
-      console.log('Campaigns initialized:', campData)
-      
-      if (campData.error) {
-        setMessage(`❌ Fehler beim Erstellen der Kampagnen: ${campData.error}`)
-        return
-      }
-      
-      const locationCount = campData.campaigns.reduce((sum: number, c: any) => sum + (c.selectedLocationIds?.length || 0), 0)
-      setMessage(`✅ Erfolgreich erstellt: ${locData.count} Standorte und ${campData.count} Kampagnen mit ${locationCount} Zuordnungen!`)
-      
+      setMessage('ℹ️ Testdaten-Seeding wird von der direkten Datenbank-API nicht unterstützt.')
     } catch (error) {
       console.error('Error initializing all data:', error)
       setMessage(`❌ Fehler: ${error instanceof Error ? error.message : String(error)}`)
@@ -125,41 +64,23 @@ export function DataReset() {
   const testEndpoints = async () => {
     setIsTestingEndpoints(true)
     setMessage('Testing endpoints...')
-    
+
     try {
       // Test 1: occupancy-periods GET
-      console.log('Testing GET /occupancy-periods...')
-      const periodsResponse = await fetch(`${serverUrl}/occupancy-periods`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      console.log('occupancy-periods status:', periodsResponse.status)
-      const periodsData = await periodsResponse.json()
+      console.log('Testing occupancy-periods...')
+      const periodsData = await getOccupancyPeriods()
       console.log('occupancy-periods data:', periodsData)
-      
+
       // Test 2: master-locations GET
-      console.log('Testing GET /master-locations...')
-      const locationsResponse = await fetch(`${serverUrl}/master-locations`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      console.log('master-locations status:', locationsResponse.status)
-      const locationsData = await locationsResponse.json()
+      console.log('Testing master-locations...')
+      const locationsData = await getMasterLocations()
       console.log('master-locations data:', locationsData)
-      
+
       // Test 3: campaigns GET
-      console.log('Testing GET /campaigns...')
-      const campaignsResponse = await fetch(`${serverUrl}/campaigns`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      console.log('campaigns status:', campaignsResponse.status)
-      const campaignsData = await campaignsResponse.json()
+      console.log('Testing campaigns...')
+      const campaignsData = await getCampaigns()
       console.log('campaigns data:', campaignsData)
-      
+
       setMessage(`✅ Endpunkte OK! Standorte: ${locationsData.locations?.length || 0}, Kampagnen: ${campaignsData.campaigns?.length || 0}`)
     } catch (error) {
       console.error('Endpoint test error:', error)
@@ -178,24 +99,8 @@ export function DataReset() {
     setMessage('Lösche alte Daten und lade neue Testdaten...')
 
     try {
-      // Call the reset endpoint that deletes all old data and creates new test data
-      const resetResponse = await fetch(`${serverUrl}/reset-and-init-data`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const resetData = await resetResponse.json()
-      
-      if (resetData.error) {
-        setMessage(`Fehler: ${resetData.error}`)
-        console.error('Reset error:', resetData)
-        return
-      }
-
-      setMessage(`✓ ${resetData.count || 0} neue Aufträge erfolgreich geladen!`)
+      // No dedicated reset-and-init-data endpoint in the direct DB API; this is a no-op.
+      setMessage('ℹ️ Daten-Reset wird von der direkten Datenbank-API nicht unterstützt.')
       setTimeout(() => {
         // onComplete()
       }, 1500)
@@ -210,27 +115,10 @@ export function DataReset() {
   const migrateSalesforceIds = async () => {
     setIsMigratingIds(true)
     setMessage('Füge Salesforce IDs zu bestehenden Aufträgen hinzu...')
-    
+
     try {
-      const response = await fetch(`${serverUrl}/add-salesforce-ids`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
-      
-      const data = await response.json()
-      console.log('Salesforce ID migration response:', data)
-      
-      if (data.error) {
-        setMessage(`❌ Fehler: ${data.error}`)
-      } else {
-        setMessage(`✅ Salesforce IDs zu ${data.migratedCount} von ${data.totalOrders} Aufträgen hinzugefügt!`)
-        // Reload page to show updated data
-        setTimeout(() => {
-          window.location.reload()
-        }, 2000)
-      }
+      // No dedicated add-salesforce-ids endpoint in the direct DB API; this is a no-op.
+      setMessage('ℹ️ Salesforce ID Migration wird von der direkten Datenbank-API nicht unterstützt.')
     } catch (error) {
       console.error('Error migrating Salesforce IDs:', error)
       setMessage(`❌ Fehler: ${error instanceof Error ? error.message : String(error)}`)

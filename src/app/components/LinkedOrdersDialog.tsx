@@ -12,9 +12,9 @@ import { Badge } from './ui/badge'
 import { Link2, Unlink, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react'
 import { toast } from "sonner"
 import {
-  projectId,
-  publicAnonKey,
-} from '../utils/supabase/info'
+  getOrdersBySalesforceId,
+  unlinkOrders,
+} from '../utils/api'
 
 interface LinkedOrder {
   id: string
@@ -45,8 +45,6 @@ export function LinkedOrdersDialog({
   const [orders, setOrders] = useState<LinkedOrder[]>([])
   const [loading, setLoading] = useState(false)
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-
   useEffect(() => {
     if (open && linkGroupId) {
       loadLinkedOrders()
@@ -57,17 +55,7 @@ export function LinkedOrdersDialog({
     setLoading(true)
     try {
       // Try to load by Salesforce ID first
-      const response = await fetch(`${serverUrl}/orders/salesforce/${linkGroupId}`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch linked orders')
-      }
-
-      const data = await response.json()
+      const data = await getOrdersBySalesforceId(linkGroupId)
       setOrders(data.orders || [])
     } catch (error) {
       console.error('Error fetching linked orders:', error)
@@ -80,20 +68,9 @@ export function LinkedOrdersDialog({
   const handleUnlinkAll = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${serverUrl}/orders/unlink`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderIds: orders.map(o => o.id),
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || `Server error: ${response.status}`)
+      // Unlink each order sequentially using the API helper
+      for (const o of orders) {
+        await unlinkOrders({ orderId: o.id })
       }
 
       toast.success('Verknüpfung erfolgreich aufgehoben')

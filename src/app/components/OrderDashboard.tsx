@@ -21,7 +21,7 @@ import {
 } from './ui/select'
 import { LinkedOrdersDialog } from './LinkedOrdersDialog'
 import { toast } from "sonner"
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import { updatePhotoStatus } from '../utils/api'
 
 interface SelectedLocation {
   periodId: string
@@ -92,31 +92,17 @@ export function OrderDashboard({
   const [showLinkedOrdersDialog, setShowLinkedOrdersDialog] = useState(false)
   const [selectedSalesforceId, setSelectedSalesforceId] = useState<string>('')
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-  
   // Handle status change without losing filters
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      const response = await fetch(`${serverUrl}/orders/${orderId}/photo-status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ photoStatus: newStatus }),
-      })
-
-      if (response.ok) {
-        toast.success('Status erfolgreich aktualisiert')
-        onPhotoStatusChange(orderId, newStatus)
-        // Filters remain unchanged - no navigation or reset
-      } else {
-        const error = await response.json()
-        toast.error(`Fehler: ${error.error || 'Status konnte nicht aktualisiert werden'}`)
-      }
+      await updatePhotoStatus(orderId, newStatus)
+      toast.success('Status erfolgreich aktualisiert')
+      onPhotoStatusChange(orderId, newStatus)
+      // Filters remain unchanged - no navigation or reset
     } catch (error) {
       console.error('Error updating status:', error)
-      toast.error('Netzwerkfehler beim Aktualisieren des Status')
+      const message = error instanceof Error ? error.message : 'Status konnte nicht aktualisiert werden'
+      toast.error(`Fehler: ${message}`)
     }
   }
 

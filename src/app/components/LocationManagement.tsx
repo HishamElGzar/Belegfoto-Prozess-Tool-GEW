@@ -41,7 +41,12 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { MapPin, Image as ImageIcon, Save, Search, Plus, CreditCard as Edit, Trash2, RefreshCw, CircleAlert as AlertCircle, Database } from 'lucide-react'
 import { toast } from "sonner"
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import {
+  getMasterLocations,
+  createMasterLocation,
+  updateMasterLocation,
+  deleteMasterLocation,
+} from '../utils/api'
 
 interface CompanyLocation {
   id: string
@@ -106,8 +111,6 @@ export function LocationManagement() {
   const [locationToDelete, setLocationToDelete] = useState<string | null>(null)
   const [editingLocation, setEditingLocation] = useState<CompanyLocation | null>(null)
   
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-  
   const [formData, setFormData] = useState({
     bundesland: '',
     gemeinde: '',
@@ -128,20 +131,10 @@ export function LocationManagement() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${serverUrl}/master-locations`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to load locations')
-      }
-      
-      const data = await response.json()
+      const data = await getMasterLocations()
       console.log('Loaded locations:', data)
       setLocations(data.locations || [])
-      
+
       // Automatically initialize test data if no locations exist
       if (!data.locations || data.locations.length === 0) {
         console.log('No locations found, initializing test data...')
@@ -158,34 +151,10 @@ export function LocationManagement() {
 
   const initializeTestData = async () => {
     try {
-      const response = await fetch(`${serverUrl}/init-master-locations`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
+      // No dedicated init endpoint in the direct DB API; test data seeding is a no-op here.
+      toast.info('Keine Testdaten verfügbar', {
+        description: 'Bitte erstellen Sie Standorte manuell.'
       })
-      
-      if (!response.ok) {
-        throw new Error('Failed to initialize test data')
-      }
-      
-      const data = await response.json()
-      console.log('Test data initialized:', data)
-      toast.success('Testdaten wurden geladen', {
-        description: `${data.count} Standorte wurden erstellt.`
-      })
-      
-      // Reload locations after initialization
-      const reloadResponse = await fetch(`${serverUrl}/master-locations`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-      
-      if (reloadResponse.ok) {
-        const reloadData = await reloadResponse.json()
-        setLocations(reloadData.locations || [])
-      }
     } catch (err) {
       console.error('Error initializing data:', err)
       toast.error('Fehler beim Erstellen der Testdaten')
@@ -200,23 +169,12 @@ export function LocationManagement() {
 
     setSaving(true)
     try {
-      const url = editingLocation 
-        ? `${serverUrl}/master-locations/${editingLocation.id}`
-        : `${serverUrl}/master-locations`
-      
-      const response = await fetch(url, {
-        method: editingLocation ? 'PUT' : 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to save location')
+      if (editingLocation) {
+        await updateMasterLocation(editingLocation.id, formData)
+      } else {
+        await createMasterLocation(formData)
       }
-      
+
       toast.success(editingLocation ? 'Standort aktualisiert' : 'Standort erstellt')
       setShowAddDialog(false)
       setEditingLocation(null)
@@ -234,17 +192,8 @@ export function LocationManagement() {
     if (!locationToDelete) return
 
     try {
-      const response = await fetch(`${serverUrl}/master-locations/${locationToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete location')
-      }
-      
+      await deleteMasterLocation(locationToDelete)
+
       toast.success('Standort gelöscht')
       await loadLocations()
     } catch (err) {
@@ -258,30 +207,19 @@ export function LocationManagement() {
   const handleToggleOccupancyPhoto = async (location: CompanyLocation) => {
     const newValue = !location.suitableForOccupancyPhoto
     // Optimistic update for UI responsiveness
-    setLocations(prev => prev.map(loc => 
+    setLocations(prev => prev.map(loc =>
       loc.id === location.id ? { ...loc, suitableForOccupancyPhoto: newValue } : loc
     ))
 
     try {
-      const response = await fetch(`${serverUrl}/master-locations/${location.id}/toggle-occupancy`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ suitableForOccupancyPhoto: newValue }),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to toggle occupancy photo')
-      }
-      
+      await updateMasterLocation(location.id, { suitableForOccupancyPhoto: newValue })
+
       toast.success(newValue ? 'Als geeignet markiert' : 'Markierung entfernt')
     } catch (err) {
       console.error('Error toggling status:', err)
       toast.error('Fehler beim Aktualisieren')
       // Revert on error
-      setLocations(prev => prev.map(loc => 
+      setLocations(prev => prev.map(loc =>
         loc.id === location.id ? { ...loc, suitableForOccupancyPhoto: !newValue } : loc
       ))
     }
@@ -290,12 +228,16 @@ export function LocationManagement() {
   const handleComputeOsaIds = async () => {
     setComputingOsaIds(true)
     try {
-      const response = await fetch(`${serverUrl}/master-locations/compute-osa-ids`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${publicAnonKey}` },
-      })
-      const data = await response.json()
-      toast.success(`${data.message}`)
+      // No dedicated compute-osa-ids endpoint in the direct DB API; recompute locally.
+      const updated: any[] = []
+      for (const loc of locations) {
+        const osaId = buildOsaId(loc)
+        if (osaId && loc.osaId !== osaId) {
+          await updateMasterLocation(loc.id, { osaId })
+          updated.push(loc.id)
+        }
+      }
+      toast.success(`${updated.length} OSA IDs aktualisiert`)
       await loadLocations()
     } catch (err) {
       toast.error('Fehler beim Berechnen der OSA IDs')

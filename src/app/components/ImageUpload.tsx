@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Upload, FolderOpen, X, Image as ImageIcon, Download } from 'lucide-react'
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import { supabase } from '../utils/api'
 import { toast } from "sonner"
 
 interface ImageData {
@@ -25,7 +25,7 @@ export function ImageUpload({ orderId, images, onChange, readOnly = false }: Ima
   const [showGallery, setShowGallery] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
+  const STORAGE_BUCKET = 'order-images'
 
   const handleFileSelect = () => {
     fileInputRef.current?.click()
@@ -66,30 +66,26 @@ export function ImageUpload({ orderId, images, onChange, readOnly = false }: Ima
           continue
         }
 
-        // Convert to base64
-        const base64 = await fileToBase64(file)
+        // Upload directly to Supabase Storage
+        const fileName = `${orderId}/${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(fileName, file, { contentType: file.type })
 
-        // Upload to server
-        const response = await fetch(`${serverUrl}/orders/${orderId}/upload-image`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileData: base64,
-            contentType: file.type,
-          }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.details || 'Upload fehlgeschlagen')
+        if (uploadError) {
+          throw new Error(uploadError.message || 'Upload fehlgeschlagen')
         }
 
-        const data = await response.json()
-        uploadedImages.push(data.image)
+        const { data: urlData } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(fileName)
+
+        uploadedImages.push({
+          id: uploadData?.path || fileName,
+          name: file.name,
+          url: urlData.publicUrl,
+          uploadedAt: new Date().toISOString(),
+        })
       }
 
       if (uploadedImages.length > 0) {
@@ -112,34 +108,17 @@ export function ImageUpload({ orderId, images, onChange, readOnly = false }: Ima
     }
   }
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => {
-        const base64 = reader.result as string
-        // Remove data URL prefix
-        const base64Data = base64.split(',')[1]
-        resolve(base64Data)
-      }
-      reader.onerror = (error) => reject(error)
-    })
-  }
-
   const handleRemoveImage = async (imageId: string) => {
     if (readOnly || !orderId) return
 
     try {
-      const response = await fetch(`${serverUrl}/orders/${orderId}/delete-image/${imageId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      })
+      // Remove from Supabase Storage (imageId is the storage path)
+      const { error: removeError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove([imageId])
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.details || 'Löschen fehlgeschlagen')
+      if (removeError) {
+        throw new Error(removeError.message || 'Löschen fehlgeschlagen')
       }
 
       const newImages = images.filter(img => img.id !== imageId)

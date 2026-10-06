@@ -8,9 +8,10 @@ import { Checkbox } from './ui/checkbox'
 import { Search, CircleCheck as CheckCircle2, Eye, ListFilter as Filter, X, Camera, PackageCheck } from 'lucide-react'
 import { toast } from "sonner"
 import {
-  projectId,
-  publicAnonKey,
-} from '../utils/supabase/info'
+  getOrders,
+  updateOrder,
+  updatePhotoStatus,
+} from '../utils/api'
 
 interface PhotoOrder {
   id: string
@@ -105,8 +106,6 @@ export function PhotoArrivalCheckView({ onViewOrder }: PhotoArrivalCheckViewProp
   // Arrived state per order per region: Record<orderId, Record<regionKey, boolean>>
   const [arrivedValues, setArrivedValues] = useState<Record<string, Record<string, boolean>>>({})
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-
   useEffect(() => {
     loadOrders()
   }, [])
@@ -114,11 +113,7 @@ export function PhotoArrivalCheckView({ onViewOrder }: PhotoArrivalCheckViewProp
   const loadOrders = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${serverUrl}/orders`, {
-        headers: { Authorization: `Bearer ${publicAnonKey}` },
-      })
-      if (!response.ok) throw new Error('Failed to fetch orders')
-      const data = await response.json()
+      const data = await getOrders()
 
       // Nur Aufträge im Status "Nachbearbeitung" (post_processing)
       const filtered = (data.orders || []).filter(
@@ -176,15 +171,7 @@ export function PhotoArrivalCheckView({ onViewOrder }: PhotoArrivalCheckViewProp
 
   const saveArrivedStatus = async (orderId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/orders/${orderId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ photosArrivedPerRegion: arrivedValues[orderId] }),
-      })
-      if (!response.ok) throw new Error('Failed to save')
+      await updateOrder(orderId, { photosArrivedPerRegion: arrivedValues[orderId] })
       toast.success('Foto-Eingang gespeichert')
       await loadOrders()
     } catch (error) {
@@ -195,15 +182,7 @@ export function PhotoArrivalCheckView({ onViewOrder }: PhotoArrivalCheckViewProp
 
   const markAsCompleted = async (orderId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/orders/${orderId}/photo-status`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ photoStatus: 'completed' }),
-      })
-      if (!response.ok) throw new Error('Failed to update status')
+      await updatePhotoStatus(orderId, 'completed')
       toast.success('Auftrag als abgeschlossen markiert')
       await loadOrders()
     } catch (error) {

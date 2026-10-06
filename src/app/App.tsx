@@ -16,9 +16,16 @@ import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Camera, AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import {
-  projectId,
-  publicAnonKey,
-} from "./utils/supabase/info";
+  getOrders,
+  createOrder as apiCreateOrder,
+  updateOrder as apiUpdateOrder,
+  deleteOrder as apiDeleteOrder,
+  updatePhotoStatus as apiUpdatePhotoStatus,
+  getOccupancyPeriods,
+  getPhotographers,
+  getMasterLocations,
+  getCampaigns,
+} from "./utils/api";
 
 interface SelectedLocation {
   periodId: string;
@@ -70,187 +77,23 @@ type ViewMode = "dashboard" | "create" | "edit" | "view";
 
 export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [viewMode, setViewMode] =
-    useState<ViewMode>("dashboard");
-  const [selectedOrder, setSelectedOrder] =
-    useState<Order | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [returnToTab, setReturnToTab] = useState<string>("orders");
   const tabListRef = useRef<HTMLDivElement>(null);
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`;
-
   useEffect(() => {
-    const initialize = async () => {
-      await migratePhotoStatuses();
-      await migrateMasterLocations();
-      await fetchOrders();
-      await initializeData();
-      await initializeTestDataIfEmpty();
-      await addLocationToAllOrders().catch((e) =>
-        console.error("Error adding location to all orders:", e)
-      );
-    };
-    initialize();
+    fetchOrders();
   }, []);
-
-  const initializeApp = async () => {
-    await fetchOrders();
-    // Initialize test data if no orders exist
-    const response = await fetch(`${serverUrl}/orders`, {
-      headers: {
-        Authorization: `Bearer ${publicAnonKey}`,
-      },
-    });
-    const data = await response.json();
-    if (!data.orders || data.orders.length === 0) {
-      await initializeTestData();
-    }
-    
-    // Initialize occupancy period data if none exists
-    await initializeData();
-  };
-
-  const initializeData = async () => {
-    // Initialize occupancy periods if none exist
-    const periodsResponse = await fetch(`${serverUrl}/occupancy-periods`, {
-      headers: {
-        Authorization: `Bearer ${publicAnonKey}`,
-      },
-    });
-    
-    let periodsData = { periods: [] };
-    if (periodsResponse.ok) {
-      periodsData = await periodsResponse.json();
-    }
-    
-    if (!periodsData.periods || periodsData.periods.length === 0) {
-      console.log('Initializing occupancy data...');
-      await fetch(`${serverUrl}/init-occupancy-data`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      });
-    }
-
-    // Initialize photographers if none exist
-    const photographersResponse = await fetch(`${serverUrl}/photographers`, {
-      headers: {
-        Authorization: `Bearer ${publicAnonKey}`,
-      },
-    });
-    
-    let photographersData = { photographers: [] };
-    if (photographersResponse.ok) {
-      photographersData = await photographersResponse.json();
-    }
-    
-    if (!photographersData.photographers || photographersData.photographers.length === 0) {
-      console.log('Initializing photographers...');
-      await fetch(`${serverUrl}/init-photographers`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      });
-    }
-
-    // Initialize master locations if none exist
-    const masterLocationsResponse = await fetch(`${serverUrl}/master-locations`, {
-      headers: {
-        Authorization: `Bearer ${publicAnonKey}`,
-      },
-    });
-    
-    let masterLocationsData = { locations: [] };
-    if (masterLocationsResponse.ok) {
-      masterLocationsData = await masterLocationsResponse.json();
-    }
-    
-    if (!masterLocationsData.locations || masterLocationsData.locations.length === 0) {
-      console.log('Initializing master locations...');
-      await fetch(`${serverUrl}/init-master-locations`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      });
-    }
-
-    // Initialize campaigns if none exist
-    const campaignsResponse = await fetch(`${serverUrl}/campaigns`, {
-      headers: {
-        Authorization: `Bearer ${publicAnonKey}`,
-      },
-    });
-    
-    let campaignsData = { campaigns: [] };
-    if (campaignsResponse.ok) {
-      campaignsData = await campaignsResponse.json();
-    }
-    
-    if (!campaignsData.campaigns || campaignsData.campaigns.length === 0) {
-      console.log('Initializing campaigns...');
-      await fetch(`${serverUrl}/init-campaigns`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      });
-    }
-  };
-
-  const initializeTestData = async () => {
-    try {
-      const response = await fetch(
-        `${serverUrl}/init-test-data`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to initialize test data");
-      }
-
-      const data = await response.json();
-      console.log("Test data initialized:", data.message);
-      await fetchOrders();
-      toast.success("Testdaten wurden geladen", {
-        description: `${data.count} Aufträge wurden erstellt.`,
-      });
-    } catch (error) {
-      console.error("Error initializing test data:", error);
-    }
-  };
-
-  const initializeTestDataIfEmpty = async () => {
-    if (orders.length === 0 && !loadError) {
-      await initializeTestData();
-    }
-  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setLoadError(false);
-      const response = await fetch(`${serverUrl}/orders`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch orders");
-      }
-
-      const data = await response.json();
+      const data = await getOrders();
       setOrders(data.orders || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -260,85 +103,12 @@ export default function App() {
     }
   };
 
-  const migrateMasterLocations = async () => {
+  const handleCreateOrder = async (orderData: Partial<Order>) => {
     try {
-      await fetch(`${serverUrl}/migrate-master-locations`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${publicAnonKey}` },
-      });
-    } catch (error) {
-      console.error('Error migrating master locations:', error);
-    }
-  };
-
-  const addLocationToAllOrders = async () => {
-    const response = await fetch(`${serverUrl}/admin/add-location-to-all-orders`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${publicAnonKey}` },
-    });
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(err);
-    }
-    const data = await response.json();
-    console.log(`Standort 41002.008.02353_001: ${data.message}`);
-    if (data.updatedOrders > 0) {
-      toast.success(`Standort hinzugefügt`, {
-        description: `41002.008.02353_001 wurde zu ${data.updatedOrders} Aufträgen hinzugefügt.`,
-      });
-    }
-    await fetchOrders();
-  };
-
-  // Migrate photo statuses on first load
-  const migratePhotoStatuses = async () => {
-    try {
-      const response = await fetch(`${serverUrl}/migrate-photo-statuses`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error("Migration failed");
-        return;
-      }
-
-      const data = await response.json();
-      if (data.migratedCount > 0) {
-        console.log(`Migrated ${data.migratedCount} orders to new photo statuses`);
-      }
-    } catch (error) {
-      console.error("Error migrating photo statuses:", error);
-    }
-  };
-
-  const handleCreateOrder = async (
-    orderData: Partial<Order>,
-  ) => {
-    try {
-      const response = await fetch(`${serverUrl}/orders`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.details || "Failed to create order",
-        );
-      }
-
-      const data = await response.json();
+      const data = await apiCreateOrder(orderData);
       toast.success("Auftrag erfolgreich erstellt", {
         description: `Auftrag "${data.order.auftrag}" wurde angelegt.`,
       });
-
       await fetchOrders();
       setViewMode("dashboard");
     } catch (error) {
@@ -349,36 +119,13 @@ export default function App() {
     }
   };
 
-  const handleUpdateOrder = async (
-    orderData: Partial<Order>,
-  ) => {
+  const handleUpdateOrder = async (orderData: Partial<Order>) => {
     if (!selectedOrder) return;
-
     try {
-      const response = await fetch(
-        `${serverUrl}/orders/${selectedOrder.id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(orderData),
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.details || "Failed to update order",
-        );
-      }
-
-      const data = await response.json();
+      const data = await apiUpdateOrder(selectedOrder.id, orderData);
       toast.success("Auftrag erfolgreich aktualisiert", {
         description: `Auftrag "${data.order.auftrag}" wurde gespeichert.`,
       });
-
       await fetchOrders();
       setViewMode("dashboard");
       setSelectedOrder(null);
@@ -392,23 +139,7 @@ export default function App() {
 
   const handleDeleteOrder = async (orderId: string) => {
     try {
-      const response = await fetch(
-        `${serverUrl}/orders/${orderId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.details || "Failed to delete order",
-        );
-      }
-
+      await apiDeleteOrder(orderId);
       toast.success("Auftrag erfolgreich gelöscht");
       await fetchOrders();
     } catch (error) {
@@ -433,31 +164,9 @@ export default function App() {
     setShowExport(true);
   };
 
-  const handlePhotoStatusChange = async (
-    orderId: string,
-    status: string,
-  ) => {
+  const handlePhotoStatusChange = async (orderId: string, status: string) => {
     try {
-      const response = await fetch(
-        `${serverUrl}/orders/${orderId}/photo-status`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ photoStatus: status }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.details || "Failed to update photo status",
-        );
-      }
-
-      const data = await response.json();
+      const data = await apiUpdatePhotoStatus(orderId, status);
       const statusText =
         status === "requested"
           ? "Fotos angefordert"
@@ -465,12 +174,9 @@ export default function App() {
       toast.success("Foto-Status aktualisiert", {
         description: statusText,
       });
-
-      // Update the selected order immediately (only if in view/edit mode)
       if (selectedOrder && selectedOrder.id === orderId && viewMode !== 'dashboard') {
         setSelectedOrder(data.order);
       }
-
       await fetchOrders();
     } catch (error) {
       console.error("Error updating photo status:", error);
@@ -478,6 +184,10 @@ export default function App() {
         description: String(error),
       });
     }
+  };
+
+  const addLocationToAllOrders = async () => {
+    toast.info("Funktion nicht verfügbar im direkten Datenbankmodus");
   };
 
   if (loading) {
@@ -516,7 +226,6 @@ export default function App() {
     );
   }
 
-  // Fotografen-App gets full screen, no desktop chrome
   if (viewMode === "dashboard" && returnToTab === "photographer-app") {
     return (
       <div className="fixed inset-0 z-50 bg-gray-100">
@@ -530,7 +239,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100">
-      {/* Header */}
       {viewMode === "dashboard" && (
         <header className="sticky top-0 z-40 bg-primary text-white shadow-md">
           <div className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -585,7 +293,7 @@ export default function App() {
             </TabsContent>
 
             <TabsContent value="photo-management">
-              <PhotoManagementView 
+              <PhotoManagementView
                 onViewOrder={(orderId) => {
                   const order = orders.find(o => o.id === orderId);
                   if (order) {

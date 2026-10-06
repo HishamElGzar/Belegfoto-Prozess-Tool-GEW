@@ -7,9 +7,10 @@ import { Checkbox } from './ui/checkbox'
 import { Search, ListFilter as Filter, X, Camera } from 'lucide-react'
 import { toast } from "sonner"
 import {
-  projectId,
-  publicAnonKey,
-} from '../utils/supabase/info'
+  getOrders,
+  updateOrder,
+  updatePhotoStatus,
+} from '../utils/api'
 import { OrderPhotoCard } from './OrderPhotoCard'
 
 interface PhotoOrder {
@@ -77,8 +78,6 @@ export function PhotoManagementView({ onViewOrder }: PhotoManagementViewProps) {
   const [editingSujets, setEditingSujets] = useState<Record<string, number>>({})
   const [editingGesamtfotos, setEditingGesamtfotos] = useState<Record<string, number>>({})
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-
   useEffect(() => {
     loadOrders()
   }, [])
@@ -86,25 +85,20 @@ export function PhotoManagementView({ onViewOrder }: PhotoManagementViewProps) {
   const loadOrders = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${serverUrl}/photo-management-orders`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
+      const data = await getOrders()
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders')
-      }
-
-      const data = await response.json()
-      setOrders(data.orders || [])
+      // Only orders in photo_management status
+      const filtered = (data.orders || []).filter(
+        (o: PhotoOrder) => o.photoStatus === 'photo_management'
+      )
+      setOrders(filtered)
       
       // Initialize editing values
       const initialEditingValues: Record<string, Record<string, number>> = {}
       const initialSujets: Record<string, number> = {}
       const initialGesamtfotos: Record<string, number> = {}
-      
-      data.orders?.forEach((order: PhotoOrder) => {
+
+      filtered.forEach((order: PhotoOrder) => {
         initialEditingValues[order.id] = { ...order.photosPerRegion }
         initialSujets[order.id] = order.sujetCount
         initialGesamtfotos[order.id] = order.photoCount
@@ -134,27 +128,13 @@ export function PhotoManagementView({ onViewOrder }: PhotoManagementViewProps) {
   const savePhotoCount = async (orderId: string) => {
     try {
       console.log('Saving photo count for order:', orderId, editingValues[orderId])
-      
-      const response = await fetch(`${serverUrl}/photo-management-orders/${orderId}/photos`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          photosPerRegion: editingValues[orderId]
-        }),
+
+      await updateOrder(orderId, {
+        photosPerRegion: editingValues[orderId]
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to update photo count:', errorText)
-        throw new Error('Failed to update photo count')
-      }
+      console.log('✓ Photo count saved successfully')
 
-      const data = await response.json()
-      console.log('✓ Photo count saved successfully:', data)
-      
       toast.success('Fotoanzahl gespeichert')
       await loadOrders()
     } catch (error) {
@@ -165,20 +145,9 @@ export function PhotoManagementView({ onViewOrder }: PhotoManagementViewProps) {
 
   const saveSujetCount = async (orderId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/photo-management-orders/${orderId}/sujets`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sujetCount: editingSujets[orderId]
-        }),
+      await updateOrder(orderId, {
+        sujetCount: editingSujets[orderId]
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to update sujet count')
-      }
 
       toast.success('Sujetanzahl gespeichert')
       await loadOrders()
@@ -190,20 +159,9 @@ export function PhotoManagementView({ onViewOrder }: PhotoManagementViewProps) {
 
   const saveGesamtfotos = async (orderId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/photo-management-orders/${orderId}/gesamtfotos`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          photoCount: editingGesamtfotos[orderId]
-        }),
+      await updateOrder(orderId, {
+        photoCount: editingGesamtfotos[orderId]
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to update total photo count')
-      }
 
       toast.success('Gesamtfotoanzahl gespeichert')
       await loadOrders()
@@ -215,20 +173,7 @@ export function PhotoManagementView({ onViewOrder }: PhotoManagementViewProps) {
 
   const markAsChecked = async (orderId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/orders/${orderId}/photo-status`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          photoStatus: 'logistics'
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update status')
-      }
+      await updatePhotoStatus(orderId, 'logistics')
 
       toast.success('Status auf "Logistik" geändert', {
         description: 'Der Auftrag wurde zur Logistik weitergeleitet.'

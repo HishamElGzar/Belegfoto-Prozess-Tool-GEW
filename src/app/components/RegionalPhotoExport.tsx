@@ -11,7 +11,7 @@ import {
 } from './ui/select'
 import { Download, Calendar } from 'lucide-react'
 import { toast } from "sonner"
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import { getMasterLocations } from '../utils/api'
 import * as XLSX from 'xlsx'
 
 interface Order {
@@ -109,21 +109,13 @@ export function RegionalPhotoExport({ orders }: RegionalPhotoExportProps) {
   const [loading, setLoading] = useState(false)
   const [masterLocations, setMasterLocations] = useState<any[]>([])
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-
   useEffect(() => {
     fetchMasterLocations()
   }, [])
 
   const fetchMasterLocations = async () => {
     try {
-      const response = await fetch(`${serverUrl}/master-locations`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      })
-      const data = await response.json()
+      const data = await getMasterLocations()
       if (data.locations) {
         setMasterLocations(data.locations)
       }

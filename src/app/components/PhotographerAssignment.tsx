@@ -20,7 +20,7 @@ import {
   TableRow,
 } from './ui/table'
 import { Calendar, MapPin, Camera, Save, SquareCheck as CheckSquare, Square, X, ChevronDown, ChevronUp, Eye, Download } from 'lucide-react'
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import { getPhotographers, getOrder, updateOrder } from '../utils/api'
 import { toast } from "sonner"
 import * as XLSX from 'xlsx'
 
@@ -130,16 +130,7 @@ export function PhotographerAssignment({ orders, onRefresh }: PhotographerAssign
 
   const fetchPhotographers = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82/photographers`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-      const data = await response.json()
+      const data = await getPhotographers()
       if (data.photographers) {
         setPhotographers(data.photographers.filter((p: Photographer) => p.active))
       }
@@ -304,32 +295,25 @@ export function PhotographerAssignment({ orders, onRefresh }: PhotographerAssign
 
       const [year, week] = selectedWeek.split('-').map(Number)
 
-      // Save assignments immediately
+      // Save assignments immediately via direct DB access (update order's photographerAssignments)
       let successCount = 0
       for (const [orderId, locationIds] of Object.entries(orderAssignments)) {
-        const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82/orders/${orderId}/assign-photographer`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${publicAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              photographerId: bulkPhotographer,
-              week,
-              year,
-              locationIds,
-            }),
-          }
-        )
-        
-        if (response.ok) {
+        try {
+          const { order } = await getOrder(orderId)
+          const existing = Array.isArray(order.photographerAssignments) ? order.photographerAssignments : []
+          // Remove any existing assignment for this photographer + week, then add the new one
+          const filtered = existing.filter((a: any) =>
+            !(a.photographerId === bulkPhotographer && a.week === week && a.year === year)
+          )
+          const newAssignments = [
+            ...filtered,
+            { photographerId: bulkPhotographer, week, year, locationIds },
+          ]
+          await updateOrder(orderId, { photographerAssignments: newAssignments })
           successCount++
-        } else {
-          const error = await response.json()
-          console.error('Error saving assignment:', error)
-          toast.error(`Fehler beim Speichern: ${error.error || 'Unbekannter Fehler'}`)
+        } catch (err) {
+          console.error('Error saving assignment:', err)
+          toast.error(`Fehler beim Speichern: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`)
         }
       }
 
@@ -369,33 +353,25 @@ export function PhotographerAssignment({ orders, onRefresh }: PhotographerAssign
 
       const [year, week] = selectedWeek.split('-').map(Number)
 
-      // Save assignments
+      // Save assignments via direct DB access (update order's photographerAssignments)
       let successCount = 0
       for (const [orderId, photographerLocations] of Object.entries(orderAssignments)) {
         for (const [photographerId, locationIds] of Object.entries(photographerLocations)) {
-          const response = await fetch(
-            `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82/orders/${orderId}/assign-photographer`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${publicAnonKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                photographerId,
-                week,
-                year,
-                locationIds,
-              }),
-            }
-          )
-          
-          if (response.ok) {
+          try {
+            const { order } = await getOrder(orderId)
+            const existing = Array.isArray(order.photographerAssignments) ? order.photographerAssignments : []
+            const filtered = existing.filter((a: any) =>
+              !(a.photographerId === photographerId && a.week === week && a.year === year)
+            )
+            const newAssignments = [
+              ...filtered,
+              { photographerId, week, year, locationIds },
+            ]
+            await updateOrder(orderId, { photographerAssignments: newAssignments })
             successCount++
-          } else {
-            const error = await response.json()
-            console.error('Error saving assignment:', error)
-            toast.error(`Fehler beim Speichern: ${error.error || 'Unbekannter Fehler'}`)
+          } catch (err) {
+            console.error('Error saving assignment:', err)
+            toast.error(`Fehler beim Speichern: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`)
           }
         }
       }

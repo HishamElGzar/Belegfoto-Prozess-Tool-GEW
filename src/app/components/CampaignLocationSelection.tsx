@@ -15,9 +15,11 @@ import { Badge } from './ui/badge'
 import { Search, MapPin, Calendar, ListFilter as Filter, X, CircleCheck as CheckCircle2 } from 'lucide-react'
 import { toast } from "sonner"
 import {
-  projectId,
-  publicAnonKey,
-} from '../utils/supabase/info'
+  getMasterLocations,
+  getOccupancyPeriods,
+  getCampaigns,
+  updateOrder,
+} from '../utils/api'
 
 interface MasterLocation {
   id: string
@@ -111,8 +113,6 @@ export function CampaignLocationSelection() {
   // Selected locations for current campaign
   const [selectedLocationIds, setSelectedLocationIds] = useState<Set<string>>(new Set())
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-
   useEffect(() => {
     loadData()
   }, [])
@@ -135,19 +135,7 @@ export function CampaignLocationSelection() {
 
   const fetchMasterLocations = async () => {
     try {
-      const response = await fetch(`${serverUrl}/master-locations`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to fetch master locations:', errorText)
-        throw new Error('Failed to fetch master locations')
-      }
-
-      const data = await response.json()
+      const data = await getMasterLocations()
       console.log('Fetched master locations:', data.locations?.length || 0)
       setMasterLocations(data.locations || [])
     } catch (error) {
@@ -161,19 +149,7 @@ export function CampaignLocationSelection() {
 
   const fetchOccupancyPeriods = async () => {
     try {
-      const response = await fetch(`${serverUrl}/occupancy-periods`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to fetch occupancy periods:', errorText)
-        throw new Error('Failed to fetch occupancy periods')
-      }
-
-      const data = await response.json()
+      const data = await getOccupancyPeriods()
       console.log('Fetched occupancy periods:', data.periods?.length || 0)
       setOccupancyPeriods(data.periods || [])
     } catch (error) {
@@ -187,21 +163,9 @@ export function CampaignLocationSelection() {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch(`${serverUrl}/campaigns`, {
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to fetch campaigns:', errorText)
-        throw new Error('Failed to fetch campaigns')
-      }
-
-      const data = await response.json()
+      const data = await getCampaigns()
       console.log('Fetched campaigns:', data.campaigns?.length || 0)
-      
+
       // Debug: Log first campaign to see structure
       if (data.campaigns && data.campaigns.length > 0) {
         console.log('Sample campaign data:', {
@@ -212,7 +176,7 @@ export function CampaignLocationSelection() {
           photosPerRegion: data.campaigns[0].photosPerRegion
         })
       }
-      
+
       setCampaigns(data.campaigns || [])
     } catch (error) {
       console.error('Error fetching campaigns:', error)
@@ -228,30 +192,16 @@ export function CampaignLocationSelection() {
 
     try {
       console.log('Saving campaign with status tour_assignment:', selectedCampaign.id)
-      
-      const response = await fetch(`${serverUrl}/campaigns/${selectedCampaign.id}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          selectedLocationIds: Array.from(selectedLocationIds),
-          photoStatus: 'tour_assignment' // Status auf Tourenzuweisung setzen
-        }),
+
+      const data = await updateOrder(selectedCampaign.id, {
+        selectedLocationIds: Array.from(selectedLocationIds),
+        photoStatus: 'tour_assignment' // Status auf Tourenzuweisung setzen
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to save campaign:', errorText)
-        throw new Error('Failed to save campaign selections')
-      }
-
-      const data = await response.json()
       console.log('Campaign saved successfully:', data)
 
       toast.success('Standortauswahl gespeichert', {
-        description: `${selectedLocationIds.size} Standorte zugewiesen. Status: ${data.campaign?.photoStatus || 'unbekannt'}`
+        description: `${selectedLocationIds.size} Standorte zugewiesen. Status: ${data.order?.photoStatus || 'unbekannt'}`
       })
 
       await fetchCampaigns()

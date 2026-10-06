@@ -10,7 +10,7 @@ import {
 import { Camera, CircleCheck as CheckCircle2, Circle, ChevronDown, ChevronUp, MapPin, X, Image as ImageIcon, Navigation, Route, Copy, Check, User, LogOut, LocateFixed, Loader as Loader2, CircleAlert as AlertCircle, Compass, List, RefreshCw, ChevronRight, ArrowLeft, Upload, QrCode, Nfc, ScanLine, Search, CircleCheck as CheckCircle, Circle as XCircle, Wifi } from 'lucide-react'
 import jsQR from 'jsqr'
 import { toast } from "sonner"
-import { projectId, publicAnonKey } from '../utils/supabase/info'
+import { getMasterLocations, getPhotographers } from '../utils/api'
 
 // ── PLZ Coordinate Lookup (Austrian postal code approximate centroids) ─────────
 const PLZ_COORDS: Record<string, [number, number]> = {
@@ -378,8 +378,6 @@ export function PhotographerMobileView({ orders, onExit }: PhotographerMobileVie
   const [activeTab, setActiveTab] = useState<'tour' | 'nearby' | 'scanner' | 'orders'>('tour')
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-  const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`
-
   useEffect(() => {
     fetchMasterLocations()
     fetchPhotographers()
@@ -387,11 +385,7 @@ export function PhotographerMobileView({ orders, onExit }: PhotographerMobileVie
 
   const fetchMasterLocations = async () => {
     try {
-      const res = await fetch(`${serverUrl}/master-locations`, {
-        headers: { Authorization: `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) return
-      const data = await res.json()
+      const data = await getMasterLocations()
       if (data.locations) setMasterLocations(data.locations)
     } catch (e) {
       console.error('Error fetching master locations:', e)
@@ -400,11 +394,7 @@ export function PhotographerMobileView({ orders, onExit }: PhotographerMobileVie
 
   const fetchPhotographers = async () => {
     try {
-      const res = await fetch(`${serverUrl}/photographers`, {
-        headers: { Authorization: `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) return
-      const data = await res.json()
+      const data = await getPhotographers()
       if (data.photographers) setPhotographers(data.photographers.filter((p: Photographer) => p.active))
     } catch (e) {
       console.error('Error fetching photographers:', e)
