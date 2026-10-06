@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { OrderDashboard } from "./components/OrderDashboard";
 import { OrderForm } from "./components/OrderForm";
 import { ExportDialog } from "./components/ExportDialog";
@@ -14,6 +14,7 @@ import { PhotographerMobileView } from "./components/PhotographerMobileView";
 import { Toaster, toast } from "sonner";
 import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Camera, AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import {
   projectId,
   publicAnonKey,
@@ -75,7 +76,9 @@ export default function App() {
     useState<Order | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [returnToTab, setReturnToTab] = useState<string>("orders");
+  const tabListRef = useRef<HTMLDivElement>(null);
 
   const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`;
 
@@ -230,6 +233,7 @@ export default function App() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const response = await fetch(`${serverUrl}/orders`, {
         headers: {
           Authorization: `Bearer ${publicAnonKey}`,
@@ -244,9 +248,7 @@ export default function App() {
       setOrders(data.orders || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
-      toast.error("Fehler beim Laden der Aufträge", {
-        description: String(error),
-      });
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -474,12 +476,35 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-neutral-50 to-neutral-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-6 shadow-lg shadow-primary/20">
+            <Camera className="h-8 w-8 text-white" />
+          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-lg">
             Lade Aufträge...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError && orders.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-neutral-50 to-neutral-100">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-destructive/10 mb-6">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Verbindung fehlgeschlagen</h2>
+          <p className="text-muted-foreground mb-6">
+            Die Aufträge konnten nicht geladen werden. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.
+          </p>
+          <Button onClick={() => fetchOrders()} size="lg">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Erneut versuchen
+          </Button>
         </div>
       </div>
     );
@@ -498,21 +523,40 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100">
+      {/* Header */}
+      {viewMode === "dashboard" && (
+        <header className="sticky top-0 z-40 bg-primary text-white shadow-md">
+          <div className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm">
+                <Camera className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-white text-xl font-semibold leading-tight">Gewista Fotomanager</h1>
+                <p className="text-white/70 text-sm leading-tight">Auftrags- und Fotoverwaltung</p>
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className="container mx-auto p-4 sm:p-6">
         {viewMode === "dashboard" ? (
           <Tabs value={returnToTab} onValueChange={setReturnToTab} className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="orders">Aufträge</TabsTrigger>
-              <TabsTrigger value="photo-management">Fotomanagement</TabsTrigger>
-              <TabsTrigger value="campaigns">Kampagnen & Standorte</TabsTrigger>
-              <TabsTrigger value="logistics">Fotografen-Zuweisung</TabsTrigger>
-              <TabsTrigger value="regional-export">Regionaler Export</TabsTrigger>
-              <TabsTrigger value="photographer-app">📱 Fotografen-App</TabsTrigger>
-              <TabsTrigger value="photo-arrival">Foto-Eingang</TabsTrigger>
-              <TabsTrigger value="locations">Standorte verwalten</TabsTrigger>
-              <TabsTrigger value="settings">Einstellungen</TabsTrigger>
-            </TabsList>
+            <div ref={tabListRef} className="overflow-x-auto scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
+              <TabsList className="w-max">
+                <TabsTrigger value="orders">Aufträge</TabsTrigger>
+                <TabsTrigger value="photo-management">Fotomanagement</TabsTrigger>
+                <TabsTrigger value="campaigns">Kampagnen & Standorte</TabsTrigger>
+                <TabsTrigger value="logistics">Fotografen-Zuweisung</TabsTrigger>
+                <TabsTrigger value="regional-export">Regionaler Export</TabsTrigger>
+                <TabsTrigger value="photographer-app">Fotografen-App</TabsTrigger>
+                <TabsTrigger value="photo-arrival">Foto-Eingang</TabsTrigger>
+                <TabsTrigger value="locations">Standorte verwalten</TabsTrigger>
+                <TabsTrigger value="settings">Einstellungen</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="orders">
               <OrderDashboard
@@ -588,34 +632,58 @@ export default function App() {
         ) : null}
 
         {viewMode === "create" && (
-          <OrderForm
-            onSave={handleCreateOrder}
-            onCancel={() => setViewMode("dashboard")}
-          />
+          <div>
+            <div className="mb-6 flex items-center gap-3">
+              <Button variant="outline" size="icon" onClick={() => setViewMode("dashboard")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-2xl font-semibold">Neuer Auftrag</h1>
+            </div>
+            <OrderForm
+              onSave={handleCreateOrder}
+              onCancel={() => setViewMode("dashboard")}
+            />
+          </div>
         )}
 
         {viewMode === "edit" && selectedOrder && (
-          <OrderForm
-            order={selectedOrder}
-            onSave={handleUpdateOrder}
-            onCancel={() => {
-              setViewMode("dashboard");
-              setSelectedOrder(null);
-            }}
-          />
+          <div>
+            <div className="mb-6 flex items-center gap-3">
+              <Button variant="outline" size="icon" onClick={() => { setViewMode("dashboard"); setSelectedOrder(null); }}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-2xl font-semibold">Auftrag bearbeiten</h1>
+            </div>
+            <OrderForm
+              order={selectedOrder}
+              onSave={handleUpdateOrder}
+              onCancel={() => {
+                setViewMode("dashboard");
+                setSelectedOrder(null);
+              }}
+            />
+          </div>
         )}
 
         {viewMode === "view" && selectedOrder && (
-          <OrderForm
-            order={selectedOrder}
-            onSave={() => {}}
-            onCancel={() => {
-              setViewMode("dashboard");
-              setSelectedOrder(null);
-            }}
-            onPhotoStatusChange={handlePhotoStatusChange}
-            readOnly
-          />
+          <div>
+            <div className="mb-6 flex items-center gap-3">
+              <Button variant="outline" size="icon" onClick={() => { setViewMode("dashboard"); setSelectedOrder(null); }}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-2xl font-semibold">Auftrag ansehen</h1>
+            </div>
+            <OrderForm
+              order={selectedOrder}
+              onSave={() => {}}
+              onCancel={() => {
+                setViewMode("dashboard");
+                setSelectedOrder(null);
+              }}
+              onPhotoStatusChange={handlePhotoStatusChange}
+              readOnly
+            />
+          </div>
         )}
 
         <ExportDialog
