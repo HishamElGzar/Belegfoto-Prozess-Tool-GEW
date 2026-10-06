@@ -83,12 +83,12 @@ export default function App() {
   const serverUrl = `https://${projectId}.supabase.co/functions/v1/server/make-server-b2ee3d82`;
 
   useEffect(() => {
-    // Run migration first, then fetch orders
     const initialize = async () => {
       await migratePhotoStatuses();
       await migrateMasterLocations();
       await fetchOrders();
       await initializeData();
+      await initializeTestDataIfEmpty();
       await addLocationToAllOrders().catch((e) =>
         console.error("Error adding location to all orders:", e)
       );
@@ -227,6 +227,12 @@ export default function App() {
       });
     } catch (error) {
       console.error("Error initializing test data:", error);
+    }
+  };
+
+  const initializeTestDataIfEmpty = async () => {
+    if (orders.length === 0 && !loadError) {
+      await initializeTestData();
     }
   };
 
