@@ -19,10 +19,11 @@ const supabase = createClient(
 
 // Health check endpoints
 app.get('/', (c) => {
-  return c.json({ 
-    status: 'ok', 
-    message: 'Fotoprozess API Server', 
-    timestamp: new Date().toISOString() 
+  return c.json({
+    status: 'ok',
+    message: 'Fotoprozess API Server',
+    version: '1.0.1',
+    timestamp: new Date().toISOString()
   })
 })
 
